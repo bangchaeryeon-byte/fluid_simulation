@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>수분 포텐셜 vs 높이 시뮬레이터</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0d1117;
+    color: #e6edf3;
+    min-height: 100vh;
+    padding: 2rem;
+  }
+
+  header {
+    max-width: 900px;
+    margin: 0 auto 2rem;
+  }
+
+  .tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #58a6ff;
+    border: 1px solid #58a6ff44;
+    border-radius: 20px;
+    padding: 3px 12px;
+    margin-bottom: 1rem;
+  }
+
+  h1 {
+    font-size: 28px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: #e6edf3;
+    margin-bottom: 0.5rem;
+  }
+
+  .subtitle {
+    font-size: 14px;
+    color: #8b949e;
+    line-height: 1.7;
+  }
+
+  .eq {
+    display: inline-block;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 0.6rem 1rem;
+    font-size: 13px;
+    color: #79c0ff;
+    margin-top: 0.75rem;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.03em;
+  }
+
+  .main {
+    max-width: 900px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 1.5rem;
+  }
+
+  .panel {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 1.5rem;
+  }
+
+  .panel-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #8b949e;
+    margin-bottom: 1.25rem;
+  }
+
+  .ctrl-group {
+    margin-bottom: 1.25rem;
+  }
+
+  .ctrl-label {
+    font-size: 12px;
+    color: #8b949e;
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .ctrl-val {
+    font-size: 13px;
+    font-weight: 600;
+    color: #58a6ff;
+    font-family: 'Courier New', monospace;
+  }
+
+  .ctrl-unit {
+    font-size: 11px;
+    color: #6e7681;
+  }
+
+  input[type=range] {
+    width: 100%;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: #30363d;
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #58a6ff;
+    cursor: pointer;
+    border: 2px solid #0d1117;
+  }
+
+  input[type=range]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #58a6ff;
+    cursor: pointer;
+    border: 2px solid #0d1117;
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px solid #30363d;
+    margin: 1.25rem 0;
+  }
+
+  .stats-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #8b949e;
+    margin-bottom: 0.75rem;
+  }
+
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0.6rem;
+  }
+
+  .stat-name {
+    font-size: 12px;
+    color: #8b949e;
+  }
+
+  .stat-num {
+    font-size: 14px;
+    font-weight: 600;
+    font-family: 'Courier New', monospace;
+  }
+
+  .hmax-val { color: #58a6ff; }
+  .friction-val { color: #f0883e; }
+  .grad-val { color: #3fb950; }
+
+  .hmax-banner {
+    background: #0d419d22;
+    border: 1px solid #58a6ff33;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin-top: 1rem;
+    text-align: center;
+  }
+
+  .hmax-banner .big {
+    font-size: 32px;
+    font-weight: 700;
+    color: #58a6ff;
+    font-family: 'Courier New', monospace;
+    line-height: 1.1;
+  }
+
+  .hmax-banner .lbl {
+    font-size: 11px;
+    color: #8b949e;
+    margin-top: 4px;
+  }
+
+  .chart-panel {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    font-size: 12px;
+    color: #8b949e;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .legend-line {
+    width: 20px;
+    height: 3px;
+    border-radius: 2px;
+  }
+
+  .legend-dash {
+    width: 20px;
+    height: 0;
+    border-top: 2px dashed #f85149;
+  }
+
+  .legend-dot-circle {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #3fb950;
+    border: 2px solid #0d1117;
+    flex-shrink: 0;
+  }
+
+  .chart-wrap {
+    position: relative;
+    width: 100%;
+    height: 320px;
+  }
+
+  .annotation {
+    font-size: 11px;
+    color: #8b949e;
+    text-align: center;
+    padding-top: 0.5rem;
+    border-top: 1px solid #30363d;
+  }
+
+  .annotation span {
+    color: #58a6ff;
+    font-weight: 600;
+  }
+
+  @media (max-width: 700px) {
+    body { padding: 1rem; }
+    .main { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="tag">유체역학 EL 프로젝트</div>
+  <h1>수분 포텐셜 vs 높이 시뮬레이터</h1>
+  <p class="subtitle">거대 수목의 수분 수송 메커니즘 — 팽압 = 0 조건으로 최대 성장 높이 도출</p>
+  <div class="eq">Ψ_leaf(h) = Ψ_soil − ρgh − (ΔP/L)·h &nbsp;|&nbsp; P_t = Ψ_leaf − Ψ_π = 0 → h_max</div>
+</header>
+
+<div class="main">
+  <div class="panel">
+    <div class="panel-title">파라미터 조절</div>
+
+    <div class="ctrl-group">
+      <div class="ctrl-label">
+        토양 수분 포텐셜 Ψ<sub>soil</sub>
+        <span><span class="ctrl-val" id="vSoil">0.00</span> <span class="ctrl-unit">MPa</span></span>
+      </div>
+      <input type="range" id="soil" min="-1" max="0" step="0.05" value="0">
+    </div>
+
+    <div class="ctrl-group">
+      <div class="ctrl-label">
+        삼투 포텐셜 Ψ<sub>π</sub>
+        <span><span class="ctrl-val" id="vOsm">-2.50</span> <span class="ctrl-unit">MPa</span></span>
+      </div>
+      <input type="range" id="osm" min="-4" max="-1" step="0.1" value="-2.5">
+    </div>
+
+    <div class="ctrl-group">
+      <div class="ctrl-label">
+        물관 반경 r
+        <span><span class="ctrl-val" id="vRad">12</span> <span class="ctrl-unit">μm</span></span>
+      </div>
+      <input type="range" id="rad" min="5" max="30" step="1" value="12">
+    </div>
+
+    <div class="ctrl-group">
+      <div class="ctrl-label">
+        평균 유속 v
+        <span><span class="ctrl-val" id="vVel">0.21</span> <span class="ctrl-unit">mm/s</span></span>
+      </div>
+      <input type="range" id="vel" min="0.05" max="1" step="0.05" value="0.21">
+    </div>
+
+    <hr class="divider">
+    <div class="stats-title">계산 결과</div>
+
+    <div class="stat-row">
+      <span class="stat-name">마찰 압력 구배 ΔP/L</span>
+      <span class="stat-num friction-val" id="sFriction">—</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-name">총 압력 구배</span>
+      <span class="stat-num grad-val" id="sTotalGrad">—</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-name">레이놀즈 수 Re</span>
+      <span class="stat-num" style="color:#e6edf3" id="sRe">—</span>
+    </div>
+
+    <div class="hmax-banner">
+      <div class="big" id="sHmax">—</div>
+      <div class="lbl">최대 성장 높이 h<sub>max</sub> (m)</div>
+    </div>
+  </div>
+
+  <div class="chart-panel">
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-line" style="background:#58a6ff"></div>
+        <span>수분 포텐셜 Ψ<sub>leaf</sub>(h)</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dash"></div>
+        <span>삼투 포텐셜 한계 Ψ<sub>π</sub></span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot-circle"></div>
+        <span>h<sub>max</sub> 교점 (팽압 = 0)</span>
+      </div>
+    </div>
+
+    <div class="chart-wrap">
+      <canvas id="simChart" role="img" aria-label="수분 포텐셜 vs 높이 그래프"></canvas>
+    </div>
+
+    <div class="annotation" id="annotationText">
+      팽압 P_t = 0 조건 달성 높이: <span id="hmaxText">—</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const RHO = 998, G = 9.81, MU = 1.002e-3;
+
+function calcFriction(r_um, v_mms) {
+  const r = r_um * 1e-6;
+  const v = v_mms * 1e-3;
+  return 8 * MU * v / (r * r);
+}
+
+function calcRe(r_um, v_mms) {
+  const r = r_um * 1e-6;
+  const v = v_mms * 1e-3;
+  return (RHO * v * 2 * r) / MU;
+}
+
+function buildData(soilMPa, osmMPa, r_um, v_mms) {
+  const dPL = calcFriction(r_um, v_mms);
+  const heights = Array.from({length: 201}, (_, i) => i);
+  const psi = heights.map(h => {
+    return (soilMPa * 1e6 - RHO * G * h - dPL * h) / 1e6;
+  });
+  const osmLine = heights.map(() => osmMPa);
+
+  let hmax = null;
+  for (let i = 0; i < psi.length - 1; i++) {
+    if (psi[i] >= osmMPa && psi[i + 1] < osmMPa) {
+      const frac = (osmMPa - psi[i]) / (psi[i + 1] - psi[i]);
+      hmax = i + frac;
+      break;
+    }
+  }
+  if (!hmax && psi[0] < osmMPa) hmax = 0;
+
+  return { heights, psi, osmLine, dPL, hmax };
+}
+
+let chart;
+
+function getVals() {
+  return {
+    soil: parseFloat(document.getElementById('soil').value),
+    osm: parseFloat(document.getElementById('osm').value),
+    rad: parseFloat(document.getElementById('rad').value),
+    vel: parseFloat(document.getElementById('vel').value)
+  };
+}
+
+function render() {
+  const v = getVals();
+  document.getElementById('vSoil').textContent = v.soil.toFixed(2);
+  document.getElementById('vOsm').textContent = v.osm.toFixed(2);
+  document.getElementById('vRad').textContent = v.rad.toFixed(0);
+  document.getElementById('vVel').textContent = v.vel.toFixed(2);
+
+  const { heights, psi, osmLine, dPL, hmax } = buildData(v.soil, v.osm, v.rad, v.vel);
+
+  const re = calcRe(v.rad, v.vel);
+  const totalGrad = (RHO * G + dPL) / 1000;
+
+  document.getElementById('sFriction').textContent = dPL.toFixed(1) + ' Pa/m';
+  document.getElementById('sTotalGrad').textContent = totalGrad.toFixed(2) + ' kPa/m';
+  document.getElementById('sRe').textContent = re.toFixed(4);
+  document.getElementById('sHmax').textContent = hmax !== null ? hmax.toFixed(1) : '>200';
+  document.getElementById('hmaxText').textContent = hmax !== null
+    ? `h_max ≈ ${hmax.toFixed(1)} m` : '200 m 범위 내 한계 미도달';
+
+  const hmaxPoint = hmax !== null ? [{ x: hmax, y: v.osm }] : [];
+
+  const cfg = {
+    type: 'line',
+    data: {
+      labels: heights,
+      datasets: [
+        {
+          label: 'Ψ_leaf(h)',
+          data: psi,
+          borderColor: '#58a6ff',
+          borderWidth: 2.5,
+          pointRadius: 0,
+          tension: 0.1,
+          fill: false
+        },
+        {
+          label: 'Ψ_π 한계',
+          data: osmLine,
+          borderColor: '#f85149',
+          borderWidth: 1.5,
+          borderDash: [6, 4],
+          pointRadius: 0,
+          fill: false
+        },
+        {
+          label: 'h_max',
+          data: hmaxPoint,
+          type: 'scatter',
+          pointRadius: 8,
+          pointBackgroundColor: '#3fb950',
+          pointBorderColor: '#0d1117',
+          pointBorderWidth: 2,
+          showLine: false
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#161b22',
+          borderColor: '#30363d',
+          borderWidth: 1,
+          titleColor: '#e6edf3',
+          bodyColor: '#8b949e',
+          callbacks: {
+            label: (ctx) => {
+              if (ctx.datasetIndex === 2) return `h_max ≈ ${ctx.parsed.x.toFixed(1)} m`;
+              return `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(3)} MPa`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: '높이 h (m)', color: '#8b949e', font: { size: 12 } },
+          ticks: { color: '#8b949e', maxTicksLimit: 10, font: { size: 11 } },
+          grid: { color: '#21262d' },
+          border: { color: '#30363d' }
+        },
+        y: {
+          title: { display: true, text: '수분 포텐셜 Ψ (MPa)', color: '#8b949e', font: { size: 12 } },
+          ticks: { color: '#8b949e', callback: v => v.toFixed(1), font: { size: 11 } },
+          grid: { color: '#21262d' },
+          border: { color: '#30363d' },
+          min: -5,
+          max: 0.5
+        }
+      }
+    }
+  };
+
+  if (!chart) {
+    chart = new Chart(document.getElementById('simChart'), cfg);
+  } else {
+    chart.data.datasets[0].data = psi;
+    chart.data.datasets[1].data = osmLine;
+    chart.data.datasets[2].data = hmaxPoint;
+    chart.update('none');
+  }
+}
+
+['soil', 'osm', 'rad', 'vel'].forEach(id => {
+  document.getElementById(id).addEventListener('input', render);
+});
+
+render();
+</script>
+</body>
+</html>
