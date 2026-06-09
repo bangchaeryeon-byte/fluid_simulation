@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Poiseuille 유동 + 연속 방정식 시뮬레이터</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0d1117;
+    color: #e6edf3;
+    min-height: 100vh;
+    padding: 2rem;
+  }
+
+  header {
+    max-width: 960px;
+    margin: 0 auto 2rem;
+  }
+
+  .tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #58a6ff;
+    border: 1px solid #58a6ff44;
+    border-radius: 20px;
+    padding: 3px 12px;
+    margin-bottom: 1rem;
+  }
+
+  h1 {
+    font-size: 26px;
+    font-weight: 600;
+    color: #e6edf3;
+    margin-bottom: 0.5rem;
+  }
+
+  .subtitle {
+    font-size: 14px;
+    color: #8b949e;
+    line-height: 1.7;
+  }
+
+  .eq-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 0.75rem;
+  }
+
+  .eq-pill {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 12px;
+    color: #79c0ff;
+    font-family: 'Courier New', monospace;
+  }
+
+  .main {
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #8b949e;
+    margin-bottom: 12px;
+  }
+
+  .parts-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 1.5rem;
+  }
+
+  .part-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 16px 14px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+
+  .part-card.active {
+    border: 2px solid #58a6ff;
+  }
+
+  .part-icon {
+    font-size: 20px;
+    margin-bottom: 6px;
+    color: #8b949e;
+  }
+
+  .part-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #e6edf3;
+    margin-bottom: 12px;
+  }
+
+  .ctrl-label {
+    font-size: 11px;
+    color: #8b949e;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+
+  .ctrl-val {
+    font-weight: 600;
+    color: #e6edf3;
+    font-family: 'Courier New', monospace;
+  }
+
+  .part-ctrl {
+    margin-bottom: 10px;
+  }
+
+  input[type=range] {
+    width: 100%;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: #30363d;
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #58a6ff;
+    cursor: pointer;
+    border: 2px solid #0d1117;
+  }
+
+  input[type=range]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #58a6ff;
+    border: 2px solid #0d1117;
+    cursor: pointer;
+  }
+
+  .result-pills {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 10px;
+  }
+
+  .rp {
+    display: inline-block;
+    font-size: 11px;
+    font-family: 'Courier New', monospace;
+    padding: 3px 8px;
+    border-radius: 20px;
+  }
+
+  .rp-blue  { background: #58a6ff22; color: #58a6ff; }
+  .rp-orange { background: #f0883e22; color: #f0883e; }
+  .rp-green  { background: #3fb95022; color: #3fb950; }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 1.5rem;
+  }
+
+  .stat-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 12px 14px;
+    text-align: center;
+  }
+
+  .stat-num {
+    font-size: 20px;
+    font-weight: 600;
+    font-family: 'Courier New', monospace;
+  }
+
+  .stat-lbl {
+    font-size: 11px;
+    color: #8b949e;
+    margin-top: 4px;
+  }
+
+  .charts-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 1.5rem;
+  }
+
+  .chart-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 16px;
+  }
+
+  .chart-title {
+    font-size: 12px;
+    color: #8b949e;
+    margin-bottom: 12px;
+  }
+
+  .chart-wrap {
+    position: relative;
+    height: 180px;
+  }
+
+  .insight-box {
+    background: #161b22;
+    border-left: 3px solid #58a6ff;
+    border-radius: 0 10px 10px 0;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: #8b949e;
+    line-height: 1.8;
+  }
+
+  .insight-box b {
+    color: #e6edf3;
+    font-weight: 600;
+  }
+
+  @media (max-width: 700px) {
+    body { padding: 1rem; }
+    .parts-grid { grid-template-columns: repeat(2, 1fr); }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .charts-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="tag">유체역학 EL 프로젝트</div>
+  <h1>Poiseuille 유동 + 연속 방정식 시뮬레이터</h1>
+  <p class="subtitle">부위별 물관 파라미터를 조절해 유속·압력 구배·레이놀즈 수를 실시간 비교</p>
+  <div class="eq-row">
+    <span class="eq-pill">Q = πr⁴ΔP / (8ηL)</span>
+    <span class="eq-pill">v = r²ΔP / (8ηL)</span>
+    <span class="eq-pill">연속: A₁v₁ = A₂v₂</span>
+    <span class="eq-pill">Re = ρvd / η</span>
+  </div>
+</header>
+
+<div class="main">
+  <div class="section-label">부위별 물관 파라미터 조절</div>
+  <div class="parts-grid" id="partsGrid"></div>
+
+  <div class="section-label">비교 요약</div>
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-num" id="sBottleneck" style="color:#f0883e; font-size:16px;">—</div>
+      <div class="stat-lbl">병목 부위</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="sMaxV" style="color:#58a6ff;">—</div>
+      <div class="stat-lbl">최고 유속 (mm/s)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="sMaxDP" style="color:#f0883e;">—</div>
+      <div class="stat-lbl">최대 압력 구배 (Pa/m)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="sFlowRatio" style="color:#3fb950;">—</div>
+      <div class="stat-lbl">유량 비 (뿌리/몸통)</div>
+    </div>
+  </div>
+
+  <div class="charts-row">
+    <div class="chart-card">
+      <div class="chart-title">부위별 유속 v (mm/s)</div>
+      <div class="chart-wrap">
+        <canvas id="chartV" role="img" aria-label="부위별 평균 유속 비교 막대그래프">뿌리, 몸통, 가지, 잎맥의 유속을 비교합니다.</canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">부위별 압력 구배 ΔP/L (Pa/m)</div>
+      <div class="chart-wrap">
+        <canvas id="chartDP" role="img" aria-label="부위별 압력 구배 비교 막대그래프">뿌리, 몸통, 가지, 잎맥의 압력 구배를 비교합니다.</canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="insight-box" id="insightBox">계산 중...</div>
+</div>
+
+<script>
+const RHO = 998, MU = 1.002e-3;
+
+const PARTS = [
+  { id: 'root',   name: '뿌리',  icon: '🌱', r: 25, n: 1000,  color: '#3fb950' },
+  { id: 'trunk',  name: '몸통',  icon: '🪵', r: 12, n: 200,   color: '#58a6ff' },
+  { id: 'branch', name: '가지',  icon: '🌿', r: 8,  n: 2000,  color: '#f0883e' },
+  { id: 'leaf',   name: '잎맥',  icon: '🍃', r: 3,  n: 50000, color: '#bc8cff' },
+];
+
+let state = PARTS.map(p => ({ ...p }));
+let selected = 0;
+
+function computeAll() {
+  const trunk = state[1];
+  const r_trunk = trunk.r * 1e-6;
+  const v_trunk_ms = 0.21e-3;
+  const A_trunk_total = trunk.n * Math.PI * r_trunk * r_trunk;
+
+  return state.map(p => {
+    const r = p.r * 1e-6;
+    const A_total = p.n * Math.PI * r * r;
+    const v = (A_trunk_total * v_trunk_ms) / A_total;
+    const dPL = 8 * MU * v / (r * r);
+    const Q = A_total * v * 1e9;
+    const Re = RHO * v * 2 * r / MU;
+    return { v: v * 1000, dPL, Q, Re };
+  });
+}
+
+function renderCards(results) {
+  const grid = document.getElementById('partsGrid');
+  grid.innerHTML = '';
+  state.forEach((p, i) => {
+    const res = results[i];
+    const div = document.createElement('div');
+    div.className = 'part-card' + (i === selected ? ' active' : '');
+    div.innerHTML = `
+      <div class="part-icon">${p.icon}</div>
+      <div class="part-name" style="color:${p.color}">${p.name}</div>
+      <div class="part-ctrl">
+        <div class="ctrl-label">반경 r <span class="ctrl-val" style="color:${p.color}">${p.r} μm</span></div>
+        <input type="range" min="1" max="50" step="1" value="${p.r}" data-idx="${i}" class="r-slider">
+      </div>
+      <div class="part-ctrl">
+        <div class="ctrl-label">개수 N <span class="ctrl-val">${p.n.toLocaleString()}</span></div>
+        <input type="range" min="10" max="100000" step="10" value="${p.n}" data-idx="${i}" class="n-slider">
+      </div>
+      <div class="result-pills">
+        <span class="rp rp-blue">v = ${res.v.toFixed(4)} mm/s</span>
+        <span class="rp rp-orange">ΔP/L = ${res.dPL.toFixed(1)} Pa/m</span>
+        <span class="rp rp-green">Re = ${res.Re.toFixed(5)}</span>
+      </div>
+    `;
+    div.addEventListener('click', e => {
+      if (e.target.tagName !== 'INPUT') { selected = i; renderAll(); }
+    });
+    grid.appendChild(div);
+  });
+
+  document.querySelectorAll('.r-slider').forEach(el => {
+    el.addEventListener('input', e => {
+      state[parseInt(e.target.dataset.idx)].r = parseInt(e.target.value);
+      renderAll(); e.stopPropagation();
+    });
+  });
+  document.querySelectorAll('.n-slider').forEach(el => {
+    el.addEventListener('input', e => {
+      state[parseInt(e.target.dataset.idx)].n = parseInt(e.target.value);
+      renderAll(); e.stopPropagation();
+    });
+  });
+}
+
+let chartV, chartDP;
+
+function renderCharts(results) {
+  const labels = state.map(p => p.name);
+  const colors = state.map(p => p.color);
+  const vData  = results.map(r => parseFloat(r.v.toFixed(5)));
+  const dpData = results.map(r => parseFloat(r.dPL.toFixed(2)));
+
+  const baseOpts = (unit) => ({
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: ctx => `${ctx.parsed.y} ${unit}` } }
+    },
+    scales: {
+      x: { ticks: { color: '#8b949e', font: { size: 11 } }, grid: { display: false } },
+      y: { ticks: { color: '#8b949e', font: { size: 11 } }, grid: { color: '#21262d' } }
+    }
+  });
+
+  if (!chartV) {
+    chartV = new Chart(document.getElementById('chartV'), {
+      type: 'bar',
+      data: { labels, datasets: [{ data: vData, backgroundColor: colors, borderRadius: 4, borderSkipped: false }] },
+      options: baseOpts('mm/s')
+    });
+    chartDP = new Chart(document.getElementById('chartDP'), {
+      type: 'bar',
+      data: { labels, datasets: [{ data: dpData, backgroundColor: colors, borderRadius: 4, borderSkipped: false }] },
+      options: baseOpts('Pa/m')
+    });
+  } else {
+    chartV.data.datasets[0].data = vData;
+    chartV.data.datasets[0].backgroundColor = colors;
+    chartDP.data.datasets[0].data = dpData;
+    chartDP.data.datasets[0].backgroundColor = colors;
+    chartV.update('none');
+    chartDP.update('none');
+  }
+}
+
+function renderStats(results) {
+  const maxDP    = Math.max(...results.map(r => r.dPL));
+  const maxDPIdx = results.findIndex(r => r.dPL === maxDP);
+  const maxV     = Math.max(...results.map(r => r.v));
+  const ratio    = (results[0].Q / results[1].Q).toFixed(2);
+
+  document.getElementById('sBottleneck').textContent = state[maxDPIdx].name;
+  document.getElementById('sMaxV').textContent       = maxV.toFixed(4);
+  document.getElementById('sMaxDP').textContent      = maxDP.toFixed(1);
+  document.getElementById('sFlowRatio').textContent  = ratio;
+
+  const r4ratio = Math.round(Math.pow(state[1].r / state[3].r, 2));
+  document.getElementById('insightBox').innerHTML =
+    `<b>연속 방정식</b>: 총 단면적이 가장 작은 <b>${state[maxDPIdx].name}</b>에서 유속이 최대이고 압력 손실이 집중됩니다. ` +
+    `몸통 유속 ${results[1].v.toFixed(4)} mm/s → 잎맥 유속 ${results[3].v.toFixed(4)} mm/s. ` +
+    `<b>Poiseuille 법칙 (r² 반비례)</b>: 잎맥 반경이 몸통의 ${(state[3].r / state[1].r).toFixed(2)}배이므로 ΔP/L은 약 <b>${r4ratio}배</b> 더 큽니다.`;
+}
+
+function renderAll() {
+  const results = computeAll();
+  renderCards(results);
+  renderCharts(results);
+  renderStats(results);
+}
+
+renderAll();
+</script>
+</body>
+</html>
