@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cavitation 임계 조건 시뮬레이터</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0d1117;
+    color: #e6edf3;
+    min-height: 100vh;
+    padding: 2rem;
+  }
+
+  header {
+    max-width: 960px;
+    margin: 0 auto 2rem;
+  }
+
+  .tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #E24B4A;
+    border: 1px solid #E24B4A44;
+    border-radius: 20px;
+    padding: 3px 12px;
+    margin-bottom: 1rem;
+  }
+
+  h1 {
+    font-size: 26px;
+    font-weight: 600;
+    color: #e6edf3;
+    margin-bottom: 0.5rem;
+  }
+
+  .subtitle {
+    font-size: 14px;
+    color: #8b949e;
+    line-height: 1.7;
+  }
+
+  .eq-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 0.75rem;
+  }
+
+  .eq-pill {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 12px;
+    color: #ffa657;
+    font-family: 'Courier New', monospace;
+  }
+
+  .main {
+    max-width: 960px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 16px;
+    margin-bottom: 1.5rem;
+  }
+
+  .ctrl-panel {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 1.5rem;
+  }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #8b949e;
+    margin-bottom: 14px;
+  }
+
+  .ctrl-group { margin-bottom: 1rem; }
+
+  .ctrl-lbl {
+    font-size: 12px;
+    color: #8b949e;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+
+  .ctrl-val {
+    font-weight: 600;
+    color: #e6edf3;
+    font-family: 'Courier New', monospace;
+  }
+
+  input[type=range] {
+    width: 100%;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: #30363d;
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #E24B4A;
+    cursor: pointer;
+    border: 2px solid #0d1117;
+  }
+
+  input[type=range]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #E24B4A;
+    border: 2px solid #0d1117;
+    cursor: pointer;
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px solid #30363d;
+    margin: 1.25rem 0;
+  }
+
+  .status-card {
+    border-radius: 10px;
+    padding: 1rem;
+    border: 1px solid #30363d;
+    margin-top: 1rem;
+    transition: background 0.2s, border-color 0.2s;
+  }
+
+  .status-safe {
+    background: #0d3a1f;
+    border-color: #3fb95055;
+  }
+
+  .status-danger {
+    background: #3a0d0d;
+    border-color: #E24B4A55;
+  }
+
+  .status-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .status-safe .status-title { color: #3fb950; }
+  .status-danger .status-title { color: #E24B4A; }
+
+  .status-desc {
+    font-size: 12px;
+    color: #8b949e;
+    line-height: 1.6;
+  }
+
+  .right-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  .stat-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 12px 14px;
+    text-align: center;
+  }
+
+  .stat-num {
+    font-size: 22px;
+    font-weight: 600;
+    font-family: 'Courier New', monospace;
+  }
+
+  .stat-lbl {
+    font-size: 11px;
+    color: #8b949e;
+    margin-top: 4px;
+  }
+
+  .chart-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 16px;
+    flex: 1;
+  }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    font-size: 12px;
+    color: #8b949e;
+    margin-bottom: 10px;
+  }
+
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+
+  .ld {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .ld-dash {
+    width: 18px;
+    height: 0;
+    border-top: 2px dashed #E24B4A;
+    flex-shrink: 0;
+  }
+
+  .ld-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid #0d1117;
+    flex-shrink: 0;
+  }
+
+  .chart-wrap {
+    position: relative;
+    height: 260px;
+  }
+
+  .insight-box {
+    max-width: 960px;
+    margin: 0 auto;
+    background: #161b22;
+    border-left: 3px solid #E24B4A;
+    border-radius: 0 10px 10px 0;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: #8b949e;
+    line-height: 1.8;
+  }
+
+  .insight-box b {
+    color: #e6edf3;
+    font-weight: 600;
+  }
+
+  @media (max-width: 700px) {
+    body { padding: 1rem; }
+    .main { grid-template-columns: 1fr; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="tag">유체역학 EL 프로젝트 — 슬라이드 11</div>
+  <h1>Cavitation 임계 조건 시뮬레이터</h1>
+  <p class="subtitle">Young-Laplace 방정식 기반 — pit pore 반경과 높이에 따른 물관 내 장력 vs cavitation 한계</p>
+  <div class="eq-row">
+    <span class="eq-pill">ΔP_cav = 2γ / r_pit</span>
+    <span class="eq-pill">T(h) = ρgh + (ΔP/L)·h − Ψ_soil</span>
+    <span class="eq-pill">cavitation 조건: T(h) > ΔP_cav</span>
+  </div>
+</header>
+
+<div class="main">
+  <div class="ctrl-panel">
+    <div class="section-label">파라미터 조절</div>
+
+    <div class="ctrl-group">
+      <div class="ctrl-lbl">pit pore 반경 r<sub>pit</sub> <span class="ctrl-val" id="vRpit">200</span> nm</div>
+      <input type="range" id="rpit" min="50" max="500" step="10" value="200">
+    </div>
+    <div class="ctrl-group">
+      <div class="ctrl-lbl">표면장력 γ <span class="ctrl-val" id="vGamma">0.0728</span> N/m</div>
+      <input type="range" id="gamma" min="0.060" max="0.080" step="0.001" value="0.0728">
+    </div>
+    <div class="ctrl-group">
+      <div class="ctrl-lbl">토양 수분 포텐셜 Ψ<sub>soil</sub> <span class="ctrl-val" id="vSoil">0.00</span> MPa</div>
+      <input type="range" id="soil" min="-1" max="0" step="0.05" value="0">
+    </div>
+    <div class="ctrl-group">
+      <div class="ctrl-lbl">물관 마찰 구배 ΔP/L <span class="ctrl-val" id="vFric">120</span> Pa/m</div>
+      <input type="range" id="fric" min="10" max="500" step="10" value="120">
+    </div>
+    <div class="ctrl-group">
+      <div class="ctrl-lbl">현재 높이 h <span class="ctrl-val" id="vH">80</span> m</div>
+      <input type="range" id="hh" min="1" max="200" step="1" value="80">
+    </div>
+
+    <hr class="divider">
+
+    <div class="status-card status-safe" id="statusCard">
+      <div class="status-title" id="statusTitle">✓ 안전 — cavitation 없음</div>
+      <div class="status-desc" id="statusDesc">계산 중...</div>
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-num" id="sCavLimit" style="color:#E24B4A;">—</div>
+        <div class="stat-lbl">cavitation 한계 (MPa)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="sTension" style="color:#58a6ff;">—</div>
+        <div class="stat-lbl">현재 장력 T(h) (MPa)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="sHcrit" style="color:#BA7517;">—</div>
+        <div class="stat-lbl">임계 높이 h<sub>crit</sub> (m)</div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="legend">
+        <div class="legend-item"><div class="ld" style="background:#58a6ff"></div><span>물관 내 장력 T(h)</span></div>
+        <div class="legend-item"><div class="ld-dash"></div><span>cavitation 한계 ΔP_cav</span></div>
+        <div class="legend-item"><div class="ld-dot" style="background:#BA7517"></div><span>임계 교점 h<sub>crit</sub></span></div>
+        <div class="legend-item"><div class="ld-dot" id="currentDot" style="background:#3fb950"></div><span>현재 위치</span></div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="cavChart" role="img" aria-label="높이에 따른 물관 내 장력과 cavitation 한계 비교 그래프">높이가 증가할수록 장력이 증가하며 cavitation 한계와 교차하는 지점이 임계 높이입니다.</canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="insight-box" id="insightBox">계산 중...</div>
+
+<script>
+const RHO = 998, G = 9.81;
+
+function getVals() {
+  return {
+    rpit:  parseFloat(document.getElementById('rpit').value) * 1e-9,
+    gamma: parseFloat(document.getElementById('gamma').value),
+    soil:  parseFloat(document.getElementById('soil').value) * 1e6,
+    fric:  parseFloat(document.getElementById('fric').value),
+    h:     parseFloat(document.getElementById('hh').value)
+  };
+}
+
+function calcCavLimit(rpit, gamma) {
+  return (2 * gamma / rpit) / 1e6;
+}
+
+function calcTension(h, soilPa, fric) {
+  return (RHO * G * h + fric * h - soilPa) / 1e6;
+}
+
+function findHcrit(cavLimitMPa, soilPa, fric) {
+  for (let h = 0; h <= 200; h += 0.1) {
+    if (calcTension(h, soilPa, fric) >= cavLimitMPa) return parseFloat(h.toFixed(1));
+  }
+  return null;
+}
+
+let chart;
+
+function render() {
+  const v = getVals();
+  document.getElementById('vRpit').textContent  = Math.round(v.rpit * 1e9);
+  document.getElementById('vGamma').textContent = v.gamma.toFixed(4);
+  document.getElementById('vSoil').textContent  = (v.soil / 1e6).toFixed(2);
+  document.getElementById('vFric').textContent  = v.fric.toFixed(0);
+  document.getElementById('vH').textContent     = v.h.toFixed(0);
+
+  const cavLimitMPa = calcCavLimit(v.rpit, v.gamma);
+  const currentT    = calcTension(v.h, v.soil, v.fric);
+  const hcrit       = findHcrit(cavLimitMPa, v.soil, v.fric);
+  const isSafe      = currentT < cavLimitMPa;
+
+  document.getElementById('sCavLimit').textContent = cavLimitMPa.toFixed(3);
+  document.getElementById('sTension').textContent  = currentT.toFixed(3);
+  document.getElementById('sHcrit').textContent    = hcrit !== null ? hcrit.toFixed(1) : '>200';
+
+  const card = document.getElementById('statusCard');
+  card.className = 'status-card ' + (isSafe ? 'status-safe' : 'status-danger');
+  document.getElementById('statusTitle').textContent = isSafe ? '✓ 안전 — cavitation 없음' : '✗ 위험 — cavitation 발생!';
+  document.getElementById('statusDesc').textContent  = isSafe
+    ? `현재 장력 ${currentT.toFixed(3)} MPa < 한계 ${cavLimitMPa.toFixed(3)} MPa. 공기 방울 형성 없음.`
+    : `장력 ${currentT.toFixed(3)} MPa > 한계 ${cavLimitMPa.toFixed(3)} MPa. 물기둥 단절 위험!`;
+
+  document.getElementById('currentDot').style.background = isSafe ? '#3fb950' : '#E24B4A';
+
+  const heights  = Array.from({length: 201}, (_, i) => i);
+  const tensions = heights.map(h => parseFloat(calcTension(h, v.soil, v.fric).toFixed(4)));
+  const cavLine  = heights.map(() => parseFloat(cavLimitMPa.toFixed(4)));
+  const hcritPt  = hcrit !== null ? [{ x: hcrit, y: cavLimitMPa }] : [];
+  const currPt   = [{ x: v.h, y: currentT }];
+
+  const cfg = {
+    type: 'line',
+    data: {
+      labels: heights,
+      datasets: [
+        {
+          label: '장력 T(h)',
+          data: tensions,
+          borderColor: '#58a6ff',
+          borderWidth: 2.5,
+          pointRadius: 0,
+          tension: 0.1,
+          fill: false
+        },
+        {
+          label: 'cavitation 한계',
+          data: cavLine,
+          borderColor: '#E24B4A',
+          borderWidth: 1.5,
+          borderDash: [6, 4],
+          pointRadius: 0,
+          fill: false
+        },
+        {
+          label: 'h_crit',
+          data: hcritPt,
+          type: 'scatter',
+          pointRadius: 8,
+          pointBackgroundColor: '#BA7517',
+          pointBorderColor: '#0d1117',
+          pointBorderWidth: 2,
+          showLine: false
+        },
+        {
+          label: '현재 위치',
+          data: currPt,
+          type: 'scatter',
+          pointRadius: 7,
+          pointBackgroundColor: isSafe ? '#3fb950' : '#E24B4A',
+          pointBorderColor: '#0d1117',
+          pointBorderWidth: 2,
+          showLine: false
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#161b22',
+          borderColor: '#30363d',
+          borderWidth: 1,
+          titleColor: '#e6edf3',
+          bodyColor: '#8b949e',
+          callbacks: {
+            label: ctx => {
+              if (ctx.datasetIndex === 2) return `h_crit ≈ ${ctx.parsed.x.toFixed(1)} m`;
+              if (ctx.datasetIndex === 3) return `현재: T = ${ctx.parsed.y.toFixed(3)} MPa`;
+              return `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(3)} MPa`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: '높이 h (m)', color: '#8b949e', font: { size: 12 } },
+          ticks: { color: '#8b949e', font: { size: 11 }, maxTicksLimit: 10 },
+          grid: { color: '#21262d' },
+          border: { color: '#30363d' }
+        },
+        y: {
+          title: { display: true, text: '압력 (MPa)', color: '#8b949e', font: { size: 12 } },
+          ticks: { color: '#8b949e', font: { size: 11 }, callback: v => v.toFixed(1) },
+          grid: { color: '#21262d' },
+          border: { color: '#30363d' },
+          min: 0
+        }
+      }
+    }
+  };
+
+  if (!chart) {
+    chart = new Chart(document.getElementById('cavChart'), cfg);
+  } else {
+    chart.data.datasets[0].data = tensions;
+    chart.data.datasets[1].data = cavLine;
+    chart.data.datasets[2].data = hcritPt;
+    chart.data.datasets[3].data = currPt;
+    chart.data.datasets[3].pointBackgroundColor = isSafe ? '#3fb950' : '#E24B4A';
+    chart.update('none');
+  }
+
+  const r4ratio = Math.round(Math.pow(200 / Math.round(v.rpit * 1e9), 1));
+  const margin  = Math.abs(((cavLimitMPa - currentT) / cavLimitMPa * 100)).toFixed(1);
+  document.getElementById('insightBox').innerHTML =
+    `<b>Young-Laplace 방정식</b>: pit pore 반경 ${Math.round(v.rpit*1e9)} nm → cavitation 한계 <b>${cavLimitMPa.toFixed(3)} MPa</b>. ` +
+    `반경을 절반으로 줄이면 한계 장력은 <b>2배</b> 상승 (r에 반비례). ` +
+    (hcrit !== null
+      ? `현재 조건에서 h = <b>${hcrit.toFixed(1)} m</b> 초과 시 물기둥 단절 위험 — ` +
+        (isSafe ? `현재 안전 여유 <b>${margin}%</b>.` : `<b style="color:#E24B4A">현재 임계점 초과 상태!</b>`)
+      : `200 m 범위 내에서 cavitation 발생하지 않습니다.`);
+}
+
+['rpit','gamma','soil','fric','hh'].forEach(id => {
+  document.getElementById(id).addEventListener('input', render);
+});
+
+render();
+</script>
+</body>
+</html>
